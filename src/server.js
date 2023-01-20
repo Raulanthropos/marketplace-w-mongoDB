@@ -3,18 +3,15 @@ import cors from "cors";
 import listEndpoints from "express-list-endpoints";
 import productRouter from "./api/products/index.js";
 import reviewRouter from "./api/reviews/index.js";
-/* import userRouter from "./users/index.js"; */
 import {
     badRequestHandler,
     genericServerErrorHandler,
     notFoundHandler,
     unauthorizedHandler,
   } from "./errorHandlers.js";
-import { join } from "path"
 import mongoose from "mongoose";
 const server = express();
 const port = process.env.PORT || 3001
-const publicFolderPath = join(process.cwd(), "./public");
 import dotenv from "dotenv";
 
 dotenv.config();
