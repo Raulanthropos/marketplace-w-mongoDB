@@ -19,7 +19,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-server.use(express.static(publicFolderPath))
 server.use(cors())
 server.use(express.json())
 server.use("/products", productRouter)
