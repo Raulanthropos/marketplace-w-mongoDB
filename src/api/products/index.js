@@ -3,13 +3,16 @@ import createHttpError from "http-errors";
 import productModel from "./model.js";
 import reviewModel from '../reviews/model.js'
 import q2m from "query-to-mongo";
+import options from "mongoose";
 
 const productRouter = express.Router();
 
 productRouter.get("/", async (req,res,next)=>{
     try{
-        const mongoQuery = q2m.apply(req.query);
+        const mongoQuery = q2m(req.query);
+        console.log(req.query, mongoQuery, mongoQuery.options)
         const total = await productModel.countDocuments(mongoQuery.criteria);
+        console.log(total)
         const products = await productModel.find(
           mongoQuery.criteria,
           mongoQuery.options.fields
