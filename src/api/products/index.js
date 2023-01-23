@@ -10,7 +10,7 @@ const productRouter = express.Router();
 productRouter.get("/", async (req,res,next)=>{
     try{
         const mongoQuery = q2m(req.query);
-        console.log(req.query, mongoQuery, mongoQuery.options)
+        console.log("This is the initial response to the req.query, without using query-to-mongo", req.query, "This is the mongoquery", mongoQuery)
         const total = await productModel.countDocuments(mongoQuery.criteria);
         console.log(total)
         const products = await productModel.find(
@@ -31,7 +31,6 @@ productRouter.get("/", async (req,res,next)=>{
     }    
 })
 
-
 productRouter.get("/:productId" , async (req,res,next)=>{
     try{      
         const foundProduct = await productModel.findById(req.params.productId)       
@@ -43,31 +42,6 @@ productRouter.get("/:productId" , async (req,res,next)=>{
         next(error);
     }
 })
-
-
-// productRouter.get("/withpagination", async (req, res, next) => {
-//     try {
-//       const mongoQuery = q2m(req.query);
-//       const totalProducts = await productModel.countDocuments(mongoQuery.criteria);
-//       const products = await productModel.find(
-//         mongoQuery.criteria,
-//         mongoQuery.options.fields
-//       )
-//         .skip(mongoQuery.options.skip)
-//         .limit(mongoQuery.options.limit)
-//         .sort(mongoQuery.options.sort)
-//         .populate({ path: "reviews", select: "comment rate" });
-//       res.send({
-//         links: mongoQuery.links("http://localhost:3001/products", totalProducts),
-//         totalProducts,
-//         totalPages: Math.ceil(totalProducts / mongoQuery.options.limit),
-//         products,
-//       });
-//     } catch (error) {
-//       next(error);
-//     }
-//   });
-
 
 productRouter.post("/", async (req,res,next)=>{
     try{

@@ -3,13 +3,12 @@ import createHttpError from "http-errors";
 import reviewModel from "./model.js";
 import q2m from "query-to-mongo";
 
-const localEndpoint=`${process.env.LOCAL_URL}${process.env.PORT}/reviews`
-
 const reviewRouter = express.Router();
-//all comments
+
 reviewRouter.get("/", async (req,res,next)=>{
     try{
-        const mongoQuery = q2m.apply(req.query);
+        const mongoQuery = q2m(req.query);
+        console.log(req.query, mongoQuery)
         const total = await reviewModel.countDocuments(mongoQuery.criteria);
         const reviews = await reviewModel.find(
           mongoQuery.criteria,
