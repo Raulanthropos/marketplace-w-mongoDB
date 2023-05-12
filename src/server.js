@@ -1,34 +1,45 @@
-import express from "express";
-import cors from "cors";
-import listEndpoints from "express-list-endpoints";
-import productRouter from "./api/products/index.js";
-import reviewRouter from "./api/reviews/index.js";
-import {
-    badRequestHandler,
-    genericServerErrorHandler,
-    notFoundHandler,
-    unauthorizedHandler,
-  } from "./errorHandlers.js";
-import mongoose from "mongoose";
-const server = express();
-const port = process.env.PORT || 3001
-import dotenv from "dotenv";
-
+import * as dotenv from "dotenv";
 dotenv.config();
+import express from "express";
+import listEndpoints from "express-list-endpoints";
+import { join } from "path";
+import cors from "cors";
+import {
+  genericErrorHandler,
+  notFoundHandler,
+  badRequestHandler,
+  unauthorizedHandler,
+} from "./errorHandlers.js";
+import productsRouter from "./api/products/index.js";
+import filesRouter from "./api/files/index.js";
+import reviewsRouter from "./api/reviews/index.js";
+import mongoose, { mongo } from "mongoose";
 
-server.use(cors())
-server.use(express.json())
-server.use("/products", productRouter)
-server.use("/reviews", reviewRouter)
+const publicFolderPath = join(process.cwd(), "./public");
+
+const server = express();
+
+const port = process.env.PORT;
+
+server.use(cors());
+server.use(express.json());
+
+server.use("/products", productsRouter);
+server.use("/products", filesRouter);
+server.use("/products", reviewsRouter);
+
 server.use(badRequestHandler);
 server.use(unauthorizedHandler);
 server.use(notFoundHandler);
-server.use(genericServerErrorHandler);
+server.use(genericErrorHandler);
 
 mongoose.connect(process.env.MONGO_URL);
 
-mongoose.connection.on("connected",()=>{
-  server.listen( port, ()=>{
-    console.log("server is connected to Database and is running on port:" , port)
-    console.table(listEndpoints(server))
-})})
+mongoose.connection.on("connected", () => {
+  console.log("Connected to Mongo! ");
+
+  server.listen(port, () => {
+    console.table(listEndpoints(server));
+    console.log("Server is running on port:", port);
+  });
+});

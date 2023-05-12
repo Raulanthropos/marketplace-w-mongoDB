@@ -1,104 +1,162 @@
 import express from "express";
-import createHttpError from "http-errors";
-import reviewModel from "./model.js";
+import uniqid from "uniqid";
+import httpErrors from "http-errors";
+import { checkReviewSchema, triggerBadRequest } from "./validator.js";
+
+import ReviewsModel from "./model.js";
+import ProductsModel from "../products/model.js";
 import q2m from "query-to-mongo";
+import createHttpError from "http-errors";
 
-const reviewRouter = express.Router();
+const { NotFound, Unauthorized, BadRequest } = httpErrors;
 
-reviewRouter.get("/", async (req,res,next)=>{
-    try{
-        const mongoQuery = q2m(req.query);
-        console.log(req.query, mongoQuery)
-        const total = await reviewModel.countDocuments(mongoQuery.criteria);
-        const reviews = await reviewModel.find(
-          mongoQuery.criteria,
-          mongoQuery.options.fields
+const reviewsRouter = express.Router();
+
+reviewsRouter.post("/:productId/reviews", async (req, res, next) => {
+  let reviewId = "";
+  try {
+    const selectedProduct = await ProductsModel.findById(req.params.productId);
+    try {
+      const reviewToSave = new ReviewsModel(req.body);
+      reviewId = await reviewToSave.save();
+    } catch (error) {
+      next(error);
+    }
+    if (selectedProduct) {
+      console.log(reviewId);
+      const reviewToInsert = {
+        ...selectedProduct.toObject(),
+        reviewDate: new Date(),
+      };
+      console.log(reviewToInsert);
+      const updatedProduct = await ProductsModel.findByIdAndUpdate(
+        req.params.productId,
+        { $push: { reviews: reviewId } },
+        { new: true, runValidators: true }
+      );
+
+      res.send(updatedProduct);
+    } else {
+      next(
+        createHttpError(
+          404,
+          `Product with id ${req.params.productId} not found!`
         )
-        .sort(mongoQuery.options.sort)
-        .skip(mongoQuery.options.skip)
-        .limit(mongoQuery.options.limit)
-        res.status(200).send({
-          links:mongoQuery.links(localEndpoint,total),
-          total,
-          totalPages: Math.ceil(total/mongoQuery.options.limit), 
-          reviews
-        })        
-    }catch(error){ 
-        next(error)
-    }    
-})
+      );
+    }
+  } catch (error) {
+    next(error);
+  }
+});
 
-reviewRouter.get("/:productId", async (req,res,next)=>{
-    try{
-        const mongoQuery = q2m.apply(req.query);
-        const total = await reviewModel.countDocuments(mongoQuery.criteria);
-        const reviews = await reviewModel.find(
-          mongoQuery.criteria,
-          mongoQuery.options.fields
+reviewsRouter.get("/:productId/reviews", async (req, res, next) => {
+  try {
+    const review = await ProductsModel.findById(req.params.productId).populate({
+      path: "reviews",
+    });
+    if (review) {
+      res.send(review.reviews);
+    } else {
+      next(
+        createHttpError(
+          404,
+          `review with id ${req.params.productId} is not found`
         )
-        .sort(mongoQuery.options.sort)
-        .skip(mongoQuery.options.skip)
-        .limit(mongoQuery.options.limit)
-        res.status(200).send({
-          links:mongoQuery.links(localEndpoint,total),
-          total,
-          totalPages: Math.ceil(total/mongoQuery.options.limit), 
-          reviews
-        })        
-    }catch(error){ 
-        next(error)
-    }    
-})
- 
-reviewRouter.get("/:productId/:reviewId" , async (req,res,next)=>{
-    try{     
-        const foundReview = await reviewModel.findById(req.params.reviewId)       
-        if(foundReview){
-            res.status(200).send(foundReview);
-        }else{next(createHttpError(404, "Review Not Found"));
-    } 
-    }catch(error){
-        next(error);
+      );
     }
-})
+  } catch (error) {
+    next(error);
+  }
+});
 
-reviewRouter.post("/:productId", async (req,res,next)=>{
-    try{
-        const newReview = new reviewModel(req.body);
-        const{_id}= await newReview.save();
-
-        res.status(201).send({message:`Added a new review.`,_id});
-        
-    }catch(error){
-        next(error);
+reviewsRouter.get("/:productId/reviews/:reviewId", async (req, res, next) => {
+  try {
+    const product = await ProductsModel.findById(req.params.productId).populate(
+      {
+        path: "reviews",
+      }
+    );
+    if (product) {
+      const review = product.reviews.find(
+        (rew) => rew._id.toString() === req.params.reviewId
+      );
+      if (review) {
+        res.send(review);
+      } else {
+        createHttpError(
+          404,
+          `review with id ${req.params.reviewId} is not found`
+        );
+      }
+    } else {
+      next(
+        createHttpError(
+          404,
+          `review with id ${req.params.productId} is not found`
+        )
+      );
     }
-})
+  } catch (error) {
+    next(error);
+  }
+});
 
-reviewRouter.put("/:reviewId", async (req,res,next)=>{
-    try{ const foundReview = await reviewModel.findByIdAndUpdate(req.params.reviewId,
-      {...req.body},
-      {new:true,runValidators:true});
-        console.log(req.headers.origin, "PUT review at:", new Date());
-        
-        res.status(200).send(updatedReview);
-        
-    }catch(error){ 
-        next(error);
+reviewsRouter.put("/:productId/reviews/:reviewId", async (req, res, next) => {
+  try {
+    const product = await ProductsModel.findById(req.params.productId);
+    if (product) {
+      const index = product.reviews.findIndex(
+        (rew) => rew._id.toString() === req.params.reviewId
+      );
+      if (index !== -1) {
+        const reviewToChange = await ReviewsModel.findByIdAndUpdate(
+          product.reviews[index],
+          req.body,
+          { new: true, runValidators: true }
+        );
+        res.send(reviewToChange);
+      } else {
+        createHttpError(
+          404,
+          `review with id ${req.params.reviewId} is not found`
+        );
+      }
+    } else {
+      next(
+        createHttpError(
+          404,
+          `product with id ${req.params.productId} is not found`
+        )
+      );
     }
-})
+  } catch (error) {
+    next(error);
+  }
+});
 
-
-reviewRouter.delete("/:reviewId", async (req,res,next)=>{try{
-     const deletedReview =  await reviewModel.findByIdAndDelete(req.params.reviewId)      
-    if(deletedReview){
-      res.status(204).send({message:"review has been deleted."})
-    }else{
-      next(createHttpError(404, "review Not Found"));    
+reviewsRouter.delete(
+  "/:productId/reviews/:reviewId",
+  async (req, res, next) => {
+    try {
+      const updatedProduct = await ProductsModel.findByIdAndUpdate(
+        req.params.productId,
+        { $pull: { reviews: req.params.reviewId } },
+        { new: true }
+      );
+      if (updatedProduct) {
+        res.send(updatedProduct);
+      } else {
+        next(
+          createHttpError(
+            404,
+            `review with id ${req.params.productId} not found!`
+          )
+        );
+      }
+    } catch (error) {
+      next(error);
     }
-}catch(error){
-    next(error)
-}
-})
+  }
+);
 
-
-export default reviewRouter;
+export default reviewsRouter;

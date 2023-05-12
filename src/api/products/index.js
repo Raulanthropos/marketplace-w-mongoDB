@@ -1,162 +1,145 @@
 import express from "express";
-import createHttpError from "http-errors";
-import productModel from "./model.js";
-import reviewModel from '../reviews/model.js'
+import ProductsModel from "./model.js";
+import CartsModel from "./cartModel.js";
+
 import q2m from "query-to-mongo";
-import options from "mongoose";
+import httpErrors from "http-errors";
+import { checkProductsSchema, triggerBadRequest } from "./validator.js";
+import { getProducts, writeProducts } from "../../lib/fs-tools.js";
 
-const productRouter = express.Router();
+const { NotFound, Unauthorized, BadRequest } = httpErrors;
 
-productRouter.get("/", async (req,res,next)=>{
-    try{
-        const mongoQuery = q2m(req.query);
-        console.log("This is the initial response to the req.query, without using query-to-mongo", req.query, "This is the mongoquery", mongoQuery)
-        const total = await productModel.countDocuments(mongoQuery.criteria);
-        console.log(total)
-        const products = await productModel.find(
-          mongoQuery.criteria,
-          mongoQuery.options.fields
-        )
-        .sort(mongoQuery.options.sort)
-        .skip(mongoQuery.options.skip)
-        .limit(mongoQuery.options.limit)
-        res.status(200).send({
-          links:mongoQuery.links(total),
-          total,
-          totalPages: Math.ceil(total/mongoQuery.options.limit), 
-          products
-        })        
-    }catch(error){ 
-        next(error)
-    }    
-})
+const productsRouter = express.Router();
 
-productRouter.get("/:productId" , async (req,res,next)=>{
-    try{      
-        const foundProduct = await productModel.findById(req.params.productId)       
-        if(foundProduct){
-            res.status(200).send(foundProduct);
-        }else{next(createHttpError(404, "Product Not Found"));
-    } 
-    }catch(error){
-        next(error);
+productsRouter.post(
+  "/",
+  checkProductsSchema,
+  triggerBadRequest,
+  async (req, res, next) => {
+    try {
+      const newProduct = new ProductsModel(req.body);
+      const { _id } = await newProduct.save();
+
+      res.status(201).send(_id);
+    } catch (error) {
+      next(error);
     }
-})
+  }
+);
 
-productRouter.post("/", async (req,res,next)=>{
-    try{
-        const newProduct = new productModel(req.body);
-        const{_id}= await newProduct.save();
+productsRouter.get("/", async (req, res, next) => {
+  try {
+    const mongoQuery = q2m(req.query);
+    const total = await ProductsModel.countDocuments(mongoQuery.criteria);
+    const products = await ProductsModel.find(
+      mongoQuery.criteria,
+      mongoQuery.options.fields
+    )
+      .limit(mongoQuery.options.limit)
+      .skip(mongoQuery.options.skip)
+      .sort(mongoQuery.options.sort)
+      .populate({
+        path: "reviews",
+      });
 
-        res.status(201).send({message:`Added a new product.`,_id});
-        
-    }catch(error){
-        next(error);
+    res.send({
+      links: mongoQuery.links("http://localhost:3001/products", total),
+      totalPages: Math.ceil(total / mongoQuery.options.limit),
+      products,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+productsRouter.get("/:productId", async (req, res, next) => {
+  try {
+    const product = await ProductsModel.findById(req.params.productId).populate(
+      {
+        path: "reviews",
+      }
+    );
+    if (product) {
+      res.send(product);
+    } else {
+      next(NotFound(`Product with id ${req.params.productId} is not found`));
     }
-})   
-    
-    productRouter.put("/:productId", async (req,res,next)=>{
-        try{ const foundProduct = await productModel.findByIdAndUpdate(req.params.productId,
-            {...req.body},
-            {new:true,runValidators:true});
-            res.status(200).send(updatedProduct);      
-        }catch(error){ 
-            next(error);
-        }
-    })
-    
-    
-    productRouter.delete("/:productId", async (req,res,next)=>{try{
-        const deletedProduct =  await productModel.findByIdAndDelete(req.params.productId)      
-        if(deletedProduct){
-            res.status(204).send({message:"product has been deleted."})
-        }else{
-            next(createHttpError(404, "product Not Found"));    
-        }
-    }catch(error){
-        next(error)
-    }
-})
+  } catch (error) {
+    next(error);
+  }
+});
 
-productRouter.post("/:productId/reviews/", async (req,res,next)=>{
-    try{
-        const product = await productModel.findByIdAndUpdate(
-            req.params.productId,
-            { $push: { reviews: req.body } },
-            { new: true, runValidators: true }
-          );     
-
-        res.status(201).send({message:`Added a new review.`});
-        
-    }catch(error){
-        console.log(error);
+productsRouter.put("/:productId", async (req, res, next) => {
+  try {
+    const updatedProduct = ProductsModel.findByIdAndUpdate(
+      req.params.productId,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (updatedProduct) {
+      res.send(updatedProduct);
+    } else {
+      next(NotFound(`Product with id ${req.params.productId} is not found`));
     }
-})
-productRouter.get("/:productId/reviews/:reviewId" , async (req,res,next)=>{
-    try{      
-        const foundProduct = await productModel.findById(req.params.productId)       
-        if(foundProduct){
-            const foundReview = foundProduct.reviews.find(review => review._id.toString()===req.params.reviewId)
-            console.log(foundReview)
-            if(foundReview){
-            res.status(200).send(foundReview);
-            }else{next(createHttpError(404, "Review Not Found"));}
-        }else{next(createHttpError(404, "Product Not Found"));
-    } 
-    }catch(error){
-        console.log(error);
-    }
-})
-productRouter.get("/:productId/reviews" , async (req,res,next)=>{
-    try{ 
-        const foundProduct = await productModel.findById(req.params.productId)       
-        if(foundProduct){
-            res.status(200).send(foundProduct.reviews);            
-        }else{next(createHttpError(404, "Product Not Found"));
-    } 
-}catch(error){
-    console.log(error);
-}
-})
+  } catch (error) {
+    next(error);
+  }
+});
 
-productRouter.put("/:productId/reviews/:reviewId" , async (req,res,next)=>{
-    try{     
-        const foundProduct = await productModel.findById(req.params.productId);
-        if(foundProduct){            
-            const foundReviewIndex = foundProduct.reviews.findIndex(review => review._id.toString()===req.params.reviewId);
-            if(foundReviewIndex>-1){                
-                foundProduct.reviews[foundReviewIndex] = {
-                    ...foundProduct.reviews[foundReviewIndex],
-                    ...req.body
-                }
-                await foundProduct.save()
-               
-            res.status(200).send({message: "Review updated successfully!"});
-            }else{next(createHttpError(404, "Review Not Found"));}
-        }else{next(createHttpError(404, "Product Not Found"));
-    } 
-    }catch(error){
-        console.log(error);
+productsRouter.delete("/:productId", async (req, res, next) => {
+  try {
+    const deletedProduct = await ProductsModel.findByIdAndDelete(
+      req.params.productId
+    );
+    if (deletedProduct) {
+      res.status(204).send();
+    } else {
+      next(NotFound(`Product with id ${req.params.productId} is not found`));
     }
-})
+  } catch (error) {
+    next(error);
+  }
+});
 
-productRouter.delete("/:productId/reviews/:reviewId" , async (req,res,next)=>{
-    try{ 
-        const foundProduct = await productModel.findById(req.params.productId)       
-        if(foundProduct){
-            const foundReview = foundProduct.reviews.find(review => review._id.toString()===req.params.reviewId)
-            console.log(foundReview)
-            const foundReviewIndex = foundProduct.reviews.findIndex(review => review._id.toString()===req.params.reviewId)
-            if(foundReviewIndex>-1){
-                const deletedReview = await productModel.findByIdAndUpdate(req.params.productId,{$pull:{reviews:{_id: req.params.reviewId}}},{new:true});
-                console.log(deletedReview)
-            res.status(200).send(foundReview);
-            }else{next(createHttpError(404, "Review Not Found"));}
-        }else{next(createHttpError(404, "Product Not Found"));
-    } 
-    }catch(error){
-        console.log(error);
-    }
-})
+// productsRouter.post("/:productId/cart", async (req, res, next) => {
+//   try {
+//     const purchasedProduct = await ProductsModel.findById(req.params.productId);
+//     if (!purchasedProduct)
+//       return next(createHttpError(404, `Book with id ${bookId} not found!`));
 
-export default productRouter;
+//     const isProductThere = await CartsModel.findOne({
+//       product: req.params.productId,
+//     });
+
+//     if (isProductThere) {
+//       const updatedCart = await CartsModel.findOneAndUpdate(
+//         {
+//           productId: req.params.productId,
+//           status: "Active",
+//           "products.productId": productId,
+//         },
+//         { $inc: { "products.$.quantity": req.body.quantity } },
+//         { new: true, runValidators: true }
+//       );
+//       res.send(updatedCart);
+//     } else {
+//       const modifiedCart = await CartsModel.findOneAndUpdate(
+//         { productId: req.params.productId },
+//         {
+//           $push: {
+//             products: {
+//               productId: req.params.productId,
+//               quantity: req.body.quantity,
+//             },
+//           },
+//         },
+//         { new: true, runValidators: true, upsert: true }
+//       );
+//       res.send(modifiedCart);
+//     }
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+export default productsRouter;
