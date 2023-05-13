@@ -9,6 +9,7 @@ const productsSchema = new Schema(
     brand: { type: String, required: true },
     price: { type: Number, required: true },
     category: { type: String, required: true },
+    imageUrl: { type: String, required: true},
     reviews: [{ type: mongoose.Types.ObjectId, ref: "Review" }],
   },
   {

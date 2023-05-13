@@ -15,13 +15,17 @@ import filesRouter from "./api/files/index.js";
 import reviewsRouter from "./api/reviews/index.js";
 import mongoose, { mongo } from "mongoose";
 
+const corsOpts = {
+  origin: "http://localhost:3000"
+};
+
 const publicFolderPath = join(process.cwd(), "./public");
 
 const server = express();
 
 const port = process.env.PORT;
 
-server.use(cors());
+server.use(cors(corsOpts));
 server.use(express.json());
 
 server.use("/products", productsRouter);

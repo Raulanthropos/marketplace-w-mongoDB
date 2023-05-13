@@ -43,9 +43,7 @@ productsRouter.get("/", async (req, res, next) => {
       });
 
     res.send({
-      links: mongoQuery.links("http://localhost:3001/products", total),
-      totalPages: Math.ceil(total / mongoQuery.options.limit),
-      products,
+      products
     });
   } catch (error) {
     next(error);
