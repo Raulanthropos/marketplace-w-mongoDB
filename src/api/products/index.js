@@ -5,7 +5,6 @@ import CartsModel from "./cartModel.js";
 import q2m from "query-to-mongo";
 import httpErrors from "http-errors";
 import { checkProductsSchema, triggerBadRequest } from "./validator.js";
-import { getProducts, writeProducts } from "../../lib/fs-tools.js";
 
 const { NotFound, Unauthorized, BadRequest } = httpErrors;
 

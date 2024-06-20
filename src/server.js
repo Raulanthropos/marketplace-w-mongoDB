@@ -11,15 +11,13 @@ import {
   unauthorizedHandler,
 } from "./errorHandlers.js";
 import productsRouter from "./api/products/index.js";
-import filesRouter from "./api/files/index.js";
 import reviewsRouter from "./api/reviews/index.js";
+import usersRouter from "./api/users/index.js";
 import mongoose, { mongo } from "mongoose";
 
 const corsOpts = {
   origin: "http://localhost:3000"
 };
-
-const publicFolderPath = join(process.cwd(), "./public");
 
 const server = express();
 
@@ -28,8 +26,8 @@ const port = process.env.PORT;
 server.use(cors(corsOpts));
 server.use(express.json());
 
+server.use("/users", usersRouter);
 server.use("/products", productsRouter);
-server.use("/products", filesRouter);
 server.use("/products", reviewsRouter);
 
 server.use(badRequestHandler);
