@@ -58,9 +58,8 @@ usersRouter.post(
 );
 
 usersRouter.post("/logout", (req, res, next) => {
-    res.status(200).send({ message: "Logged out successfully" });
-  });
-
+  res.status(200).send({ message: "Logged out successfully" });
+});
 
 usersRouter.post("/register", async (req, res, next) => {
   try {

@@ -7,35 +7,33 @@ import ReviewsModel from "./model.js";
 import ProductsModel from "../products/model.js";
 import q2m from "query-to-mongo";
 import createHttpError from "http-errors";
+import UsersModel from "../users/model.js"; // Make sure the path is correct
 
 const { NotFound, Unauthorized, BadRequest } = httpErrors;
 
 const reviewsRouter = express.Router();
 
+// Import the usersModel at the top of your src/api/reviews/index.js file
+
 reviewsRouter.post(
   "/:productId/reviews",
   JWTAuthMiddleware,
   async (req, res, next) => {
-    let reviewId = "";
     try {
       const selectedProduct = await ProductsModel.findById(
         req.params.productId
       );
-      try {
-        const reviewToSave = new ReviewsModel(req.body);
-        reviewId = await reviewToSave.save();
-      } catch (error) {
-        next(error);
-      }
       if (selectedProduct) {
-        const reviewToInsert = {
-          ...selectedProduct.toObject(),
-          reviewDate: new Date(),
-        };
-        console.log(reviewToInsert);
+        // Include the user's ID in the review
+        const reviewToSave = new ReviewsModel({
+          ...req.body,
+          userId: req.user._id, // Assuming req.user contains the authenticated user's info
+        });
+        const savedReview = await reviewToSave.save(); // Push the savedReview's ID to the product's reviews array
+
         const updatedProduct = await ProductsModel.findByIdAndUpdate(
           req.params.productId,
-          { $push: { reviews: reviewId } },
+          { $push: { reviews: savedReview._id } },
           { new: true, runValidators: true }
         );
 
@@ -53,6 +51,47 @@ reviewsRouter.post(
     }
   }
 );
+// reviewsRouter.post(
+//   "/:productId/reviews",
+//   JWTAuthMiddleware,
+//   async (req, res, next) => {
+//     let reviewId = "";
+//     try {
+//       const selectedProduct = await ProductsModel.findById(
+//         req.params.productId
+//       );
+//       try {
+//         const reviewToSave = new ReviewsModel(req.body);
+//         reviewId = await reviewToSave.save();
+//       } catch (error) {
+//         next(error);
+//       }
+//       if (selectedProduct) {
+//         const reviewToInsert = {
+//           ...selectedProduct.toObject(),
+//           reviewDate: new Date(),
+//         };
+//         console.log(reviewToInsert);
+//         const updatedProduct = await ProductsModel.findByIdAndUpdate(
+//           req.params.productId,
+//           { $push: { reviews: reviewId } },
+//           { new: true, runValidators: true }
+//         );
+
+//         res.send(updatedProduct);
+//       } else {
+//         next(
+//           createHttpError(
+//             404,
+//             `Product with id ${req.params.productId} not found!`
+//           )
+//         );
+//       }
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
 // reviewsRouter.post(
 //   "/:productId/reviews",
@@ -72,18 +111,46 @@ reviewsRouter.post(
 //   }
 // );
 
+// reviewsRouter.get("/:productId/reviews", async (req, res, next) => {
+//   try {
+//     const review = await ProductsModel.findById(req.params.productId).populate({
+//       path: "reviews",
+//     });
+//     if (review) {
+//       res.send(review.reviews);
+//     } else {
+//       next(
+//         createHttpError(
+//           404,
+//           `review with id ${req.params.productId} is not found`
+//         )
+//       );
+//     }
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 reviewsRouter.get("/:productId/reviews", async (req, res, next) => {
   try {
-    const review = await ProductsModel.findById(req.params.productId).populate({
-      path: "reviews",
-    });
-    if (review) {
-      res.send(review.reviews);
+    const product = await ProductsModel.findById(req.params.productId).populate(
+      {
+        path: "reviews",
+        populate: {
+          path: "userId", // Assuming userId is referencing the User model
+          select: "name", // Select only the 'name' field from the User model
+        },
+      }
+    );
+
+    if (product) {
+      // If product found, return populated reviews
+      res.send(product.reviews);
     } else {
       next(
         createHttpError(
           404,
-          `review with id ${req.params.productId} is not found`
+          `Product with id ${req.params.productId} is not found`
         )
       );
     }

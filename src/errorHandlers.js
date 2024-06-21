@@ -29,6 +29,6 @@ export const notFoundHandler = (err, req, res, next) => {
   }
 };
 export const genericErrorHandler = (err, req, res, next) => {
-  console.log("Error recieved", err);
+  console.log("Error received", err);
   res.status(500).send({ message: "Unexpected error" });
 };
