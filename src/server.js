@@ -13,10 +13,13 @@ import {
 import productsRouter from "./api/products/index.js";
 import reviewsRouter from "./api/reviews/index.js";
 import usersRouter from "./api/users/index.js";
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const corsOpts = {
-  origin: process.env.VERCEL_URL || process.env.FRONTEND_URL,
+  origin: [
+    process.env.VERCEL_URL,
+    process.env.FRONTEND_URL,
+  ],
 };
 
 const server = express();
@@ -38,7 +41,7 @@ server.use(genericErrorHandler);
 mongoose.connect(process.env.MONGO_URL);
 
 mongoose.connection.on("connected", () => {
-  console.log("Connected to Mongo! ");
+  console.log("Connected to Mongo!");
 
   server.listen(port, () => {
     console.table(listEndpoints(server));
