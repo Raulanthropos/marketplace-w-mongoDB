@@ -16,7 +16,7 @@ import usersRouter from "./api/users/index.js";
 import mongoose, { mongo } from "mongoose";
 
 const corsOpts = {
-  origin: "http://localhost:3000" || process.env.VERCEL_URL,
+  origin: process.env.VERCEL_URL || process.env.FRONTEND_URL,
 };
 
 const server = express();
