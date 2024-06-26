@@ -28,21 +28,15 @@ productsRouter.get("/", async (req, res, next) => {
   try {
     const mongoQuery = q2m(req.query);
     const total = await ProductsModel.countDocuments(mongoQuery.criteria);
-    const products = await ProductsModel.find(
-      mongoQuery.criteria,
-      mongoQuery.options.fields
-    )
+    const products = await ProductsModel.find(mongoQuery.criteria)
+      .sort({ price: mongoQuery.options.sort === "desc" ? -1 : 1 })
       .limit(mongoQuery.options.limit)
       .skip(mongoQuery.options.skip)
-      .sort(mongoQuery.options.sort)
       .populate({
         path: "reviews",
       });
 
-    res.send({
-      products,
-      total,
-    });
+    res.send({ products });
   } catch (error) {
     next(error);
   }
@@ -51,9 +45,11 @@ productsRouter.get("/", async (req, res, next) => {
 // Get a single product by ID
 productsRouter.get("/:productId", async (req, res, next) => {
   try {
-    const product = await ProductsModel.findById(req.params.productId).populate({
-      path: "reviews",
-    });
+    const product = await ProductsModel.findById(req.params.productId).populate(
+      {
+        path: "reviews",
+      }
+    );
     if (product) {
       res.send(product);
     } else {
@@ -105,11 +101,9 @@ productsRouter.get("/filtered", async (req, res, next) => {
     const filter = mongoQuery.criteria;
     const sort = mongoQuery.options.sort;
 
-    const products = await ProductsModel.find(filter)
-      .sort(sort)
-      .populate({
-        path: "reviews",
-      });
+    const products = await ProductsModel.find(filter).sort(sort).populate({
+      path: "reviews",
+    });
 
     res.send(products);
   } catch (error) {
