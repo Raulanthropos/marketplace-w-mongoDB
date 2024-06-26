@@ -27,9 +27,19 @@ productsRouter.post(
 productsRouter.get("/", async (req, res, next) => {
   try {
     const mongoQuery = q2m(req.query);
+    const sortOptions = {};
+    if (req.query.sortBy === 'price') {
+      if (req.query.sortOrder === 'desc') {
+        sortOptions.price = -1;
+      } else if (req.query.sortOrder === 'asc') {
+        sortOptions.price = 1;
+      }
+    } else {
+      sortOptions.createdAt = -1;
+    }
     const total = await ProductsModel.countDocuments(mongoQuery.criteria);
     const products = await ProductsModel.find(mongoQuery.criteria)
-      .sort({ price: mongoQuery.options.sort === "desc" ? -1 : 1 })
+      .sort(sortOptions)
       .limit(mongoQuery.options.limit)
       .skip(mongoQuery.options.skip)
       .populate({
