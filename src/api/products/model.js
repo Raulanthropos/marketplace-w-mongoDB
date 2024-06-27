@@ -11,7 +11,7 @@ const productsSchema = new Schema(
     category: {
       type: String,
       required: true,
-      enum: ["Clothing", "Electronics"],
+      enum: ["Clothing", "Electronics", "Household Items", "Gadgets", "Toys"],
     },
     imageUrl: { type: String, required: true },
     reviews: [{ type: mongoose.Types.ObjectId, ref: "Review" }],
