@@ -1,4 +1,4 @@
-# Garments and Electronics Backend
+# Marketplace - Backend
 
 This is the backend of a mock e-shop application built using Node.js, Express, and MongoDB. The backend provides APIs for user authentication, product management, and review handling.
 
