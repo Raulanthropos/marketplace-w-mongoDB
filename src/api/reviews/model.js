@@ -7,6 +7,7 @@ const reviewsSchema = new Schema(
     rate: { type: Number, required: true },
     comment: { type: String, required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    username: { type: String, required: true }
   },
   {
     timestamps: true,

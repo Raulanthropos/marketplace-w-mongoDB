@@ -24,10 +24,12 @@ reviewsRouter.post(
         req.params.productId
       );
       if (selectedProduct) {
-        // Include the user's ID in the review
+        console.log("This is the user", req.user);
+        // Include the user's ID and username in the review
         const reviewToSave = new ReviewsModel({
           ...req.body,
           userId: req.user._id, // Assuming req.user contains the authenticated user's info
+          username: req.user.name, // Add the username to the review
         });
         const savedReview = await reviewToSave.save(); // Push the savedReview's ID to the product's reviews array
 

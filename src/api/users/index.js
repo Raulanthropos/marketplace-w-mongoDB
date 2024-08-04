@@ -35,27 +35,24 @@ usersRouter.get("/", async (req, res, next) => {
 //   }
 // });
 
-usersRouter.post(
-  "/login",
-  async (req, res, next) => {
-    try {
-      const { email, password } = req.body;
-      const user = await UsersModel.checkCredentials(email, password);
-      if (user) {
-        const payload = {
-          _id: user._id,
-        };
-        const accessToken = await createAccessToken(payload);
-        res.send({ user, accessToken });
-      } else {
-        next(createHttpError(401, "Credentials are not OK!"));
-      }
-    } catch (error) {
-      next(error);
+usersRouter.post("/login", async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    const user = await UsersModel.checkCredentials(email, password);
+    if (user) {
+      const payload = {
+        _id: user._id,
+        name: user.name, // Include the username in the payload
+      };
+      const accessToken = await createAccessToken(payload);
+      res.send({ user, accessToken });
+    } else {
+      next(createHttpError(401, "Credentials are not OK!"));
     }
-  },
-  JWTAuthMiddleware
-);
+  } catch (error) {
+    next(error);
+  }
+});
 
 usersRouter.post("/logout", (req, res, next) => {
   res.status(200).send({ message: "Logged out successfully" });

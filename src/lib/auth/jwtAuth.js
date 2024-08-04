@@ -8,8 +8,7 @@ export const JWTAuthMiddleware = async (req, res, next) => {
     try {
       const accessToken = req.headers.authorization.replace("Bearer ", "");
       const payload = await verifyAccessToken(accessToken);
-
-      req.user = { _id: payload._id };
+      req.user = payload; // Set the payload (which contains _id and name) to req.user
       next();
     } catch (error) {
       console.log(error);
