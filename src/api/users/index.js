@@ -21,20 +21,6 @@ usersRouter.get("/", async (req, res, next) => {
   }
 });
 
-// usersRouter.delete("/:userId", async (req, res, next) => {
-//   try {
-//     const userToDelete = await UsersModel.findById(req.params.userId);
-//     if (userToDelete) {
-//       await UsersModel.findByIdAndDelete(req.params.userId);
-//       res.status(204).send();
-//     } else {
-//       next(createHttpError(404, `User with id ${req.params.userId} is not found`));
-//     }
-//   } catch (error) {
-//     next(error);
-//   }
-// });
-
 usersRouter.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body;
