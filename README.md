@@ -1,6 +1,6 @@
 # Marketplace - Backend
 
-This is the backend of a mock e-shop application built using Node.js, Express, and MongoDB. The backend provides APIs for user authentication, product management, and review handling.
+This is the backend of the marketplace application built using Node.js, Express, and MongoDB. The backend provides APIs for user authentication, product management, and review handling.
 
 ## Technologies Used
 
@@ -12,7 +12,7 @@ This is the backend of a mock e-shop application built using Node.js, Express, a
 
 - **User Authentication**: JWT-based authentication for registering and logging in users.
 - **Product Management**: APIs for fetching product details.
-- **Review Handling**: APIs for adding and fetching product reviews.
+- **Review Handling**: APIs for adding and fetching product reviews. Full CRUD functionality for authenticated users.
 
 ## Getting Started
 
